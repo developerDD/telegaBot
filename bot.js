@@ -29,7 +29,7 @@ function saveData() {
 
 bot.start((ctx) => {
     ctx.reply("Привіт! Давай розрахуємо витрати. Скільки людей було в бані?");
-    settings.waitingFor = "totalPeople";
+    settings = { totalPeople: null, people: [], drinkers: [], bathCost: null, foodExpenses: {}, alcoholExpenses: {}, waitingFor: "totalPeople" };
     saveData();
 });
 
@@ -70,7 +70,7 @@ bot.on("text", (ctx) => {
             settings.drinkers.push(text.charAt(0).toUpperCase() + text.slice(1));
             ctx.reply(`✅ ${text} додано до списку тих, хто вживав алкоголь.`);
         } else {
-            ctx.reply("❌ Такого імені немає серед учасників. Введіть ім'я правильно.");
+            ctx.reply("❌ Такого імені немає серед учасників.");
         }
         saveData();
         return;
@@ -92,7 +92,7 @@ bot.on("text", (ctx) => {
     if (settings.waitingFor === "foodExpenses") {
         let parts = text.split(" ");
         if (parts.length !== 2) {
-            ctx.reply("❌ Неправильний формат. Використовуйте: Ім'я Сума");
+            ctx.reply("❌ Використовуйте: Ім'я Сума");
             return;
         }
 
@@ -119,8 +119,6 @@ bot.on("text", (ctx) => {
         } else if (text === "ні") {
             settings.waitingFor = "alcoholExpenses";
             ctx.reply("Тепер введіть витрати на алкоголь у форматі: Ім'я Сума");
-        } else {
-            ctx.reply("❌ Введіть 'Так' або 'Ні'.");
         }
         return;
     }
@@ -128,7 +126,7 @@ bot.on("text", (ctx) => {
     if (settings.waitingFor === "alcoholExpenses") {
         let parts = text.split(" ");
         if (parts.length !== 2) {
-            ctx.reply("❌ Неправильний формат. Використовуйте: Ім'я Сума");
+            ctx.reply("❌ Використовуйте: Ім'я Сума");
             return;
         }
 
@@ -153,40 +151,31 @@ bot.on("text", (ctx) => {
             ctx.reply("Введіть наступну витрату на алкоголь у форматі: Ім'я Сума");
             settings.waitingFor = "alcoholExpenses";
         } else if (text === "ні") {
-            ctx.reply("✅ Всі витрати записано!");
+            ctx.reply("✅ Всі витрати записано! Обробляю дані...");
             ctx.reply(calculatePayments());
-            settings.waitingFor = null;
-        } else {
-            ctx.reply("❌ Введіть 'Так' або 'Ні'.");
         }
         return;
     }
 });
 
-// Функція розрахунку витрат
 function calculatePayments() {
     let totalFood = Object.values(settings.foodExpenses).reduce((a, b) => a + b, 0);
     let totalAlcohol = Object.values(settings.alcoholExpenses).reduce((a, b) => a + b, 0);
-    let totalBath = settings.bathCost;
-
     let perPersonFood = totalFood / settings.totalPeople;
-    let perPersonBath = totalBath / settings.totalPeople;
+    let perPersonBath = settings.bathCost / settings.totalPeople;
     let perDrinkerAlcohol = settings.drinkers.length > 0 ? totalAlcohol / settings.drinkers.length : 0;
 
-    let balances = {};
+    let result = `📊 *Розрахунок витрат:*\n`;
+    result += `💰 Загальна сума: ${(totalFood + totalAlcohol + settings.bathCost).toFixed(2)} грн\n`;
+    result += `🥗 Кожен платить за їжу: ${perPersonFood.toFixed(2)} грн\n`;
+    result += `🛁 Кожен платить за баню: ${perPersonBath.toFixed(2)} грн\n`;
+    result += `🍷 Кожен, хто пив, платить за алкоголь: ${perDrinkerAlcohol.toFixed(2)} грн\n\n`;
+
     settings.people.forEach((name) => {
         let spent = (settings.foodExpenses[name] || 0) + (settings.alcoholExpenses[name] || 0);
         let shouldPay = perPersonFood + perPersonBath + (settings.drinkers.includes(name) ? perDrinkerAlcohol : 0);
-        balances[name] = spent - shouldPay;
-    });
-
-    let result = `📊 *Розрахунок витрат:*\n`;
-    settings.people.forEach((name) => {
-        if (balances[name] > 0) {
-            result += `✅ ${name} переплатив: ${balances[name].toFixed(2)} грн (йому повертають)\n`;
-        } else {
-            result += `❌ ${name} винен: ${(-balances[name]).toFixed(2)} грн\n`;
-        }
+        let balance = spent - shouldPay;
+        result += balance >= 0 ? `✅ ${name} переплатив: ${balance.toFixed(2)} грн (йому повертають)\n` : `❌ ${name} винен: ${(-balance).toFixed(2)} грн\n`;
     });
 
     return result;
