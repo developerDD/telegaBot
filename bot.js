@@ -31,7 +31,7 @@ function saveData() {
 // Команда /start
 bot.start((ctx) => {
     ctx.reply("Привіт! Давай розрахуємо витрати. Скільки людей було в бані?");
-    settings.waitingFor = "totalPeople";
+    settings = { totalPeople: null, drinkers: null, bathCost: null, foodExpenses: {}, alcoholExpenses: {}, waitingFor: "totalPeople" };
     saveData();
 });
 
@@ -99,7 +99,7 @@ bot.on("text", (ctx) => {
         settings.foodExpenses[name] += amount;
         saveData();
 
-        ctx.reply("✅ Додано: " + name + " витратив " + amount + " грн на їжу. Більше витрат? (Так/Ні)");
+        ctx.reply(`✅ Додано: ${name} витратив ${amount} грн на їжу. Більше витрат? (Так/Ні)`);
         settings.waitingFor = "foodConfirm";
         return;
     }
@@ -138,7 +138,7 @@ bot.on("text", (ctx) => {
         settings.alcoholExpenses[name] += amount;
         saveData();
 
-        ctx.reply("✅ Додано: " + name + " витратив " + amount + " грн на алкоголь. Більше витрат? (Так/Ні)");
+        ctx.reply(`✅ Додано: ${name} витратив ${amount} грн на алкоголь. Більше витрат? (Так/Ні)`);
         settings.waitingFor = "alcoholConfirm";
         return;
     }
@@ -158,9 +158,42 @@ bot.on("text", (ctx) => {
     }
 });
 
-// Функція розрахунку платежів (тимчасово заглушка)
+// Функція розрахунку платежів
 function calculatePayments() {
-    return "📊 Розрахунок витрат буде реалізовано!";
+    let totalFood = Object.values(settings.foodExpenses).reduce((a, b) => a + b, 0);
+    let totalAlcohol = Object.values(settings.alcoholExpenses).reduce((a, b) => a + b, 0);
+    let totalBath = settings.bathCost;
+
+    let perPersonFood = totalFood / settings.totalPeople;
+    let perPersonBath = totalBath / settings.totalPeople;
+    let perDrinkerAlcohol = settings.drinkers > 0 ? totalAlcohol / settings.drinkers : 0;
+
+    let balances = {};
+
+    for (let name in settings.foodExpenses) {
+        balances[name] = (settings.foodExpenses[name] || 0) - perPersonFood;
+    }
+
+    for (let name in settings.alcoholExpenses) {
+        if (balances[name] === undefined) balances[name] = 0;
+        balances[name] += settings.alcoholExpenses[name] - perDrinkerAlcohol;
+    }
+
+    let result = "📊 *Розрахунок витрат:* \n";
+    result += `💰 Загальна сума: ${totalFood + totalAlcohol + totalBath} грн\n`;
+    result += `🥗 Кожен платить за їжу: ${perPersonFood.toFixed(2)} грн\n`;
+    result += `🛁 Кожен платить за баню: ${perPersonBath.toFixed(2)} грн\n`;
+    result += settings.drinkers > 0 ? `🍷 Кожен, хто пив, платить за алкоголь: ${perDrinkerAlcohol.toFixed(2)} грн\n\n` : "\n";
+
+    for (let name in balances) {
+        if (balances[name] > 0) {
+            result += `✅ ${name} переплатив: ${balances[name].toFixed(2)} грн (йому повертають)\n`;
+        } else {
+            result += `❌ ${name} винен: ${(-balances[name]).toFixed(2)} грн\n`;
+        }
+    }
+
+    return result;
 }
 
 // Запуск бота
