@@ -9,11 +9,11 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Завантаження списку постійних учасників
+// 📌 Завантаження списку постійних учасників
 const USERS_FILE = "users.json";
 let users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE)) : [];
 
-// Головні налаштування для розрахунку витрат
+// 📌 Головні налаштування
 let settings = {
     selectedPeople: [],
     drinkers: [],
@@ -21,10 +21,11 @@ let settings = {
     foodExpenses: {},
     alcoholExpenses: {},
     waitingFor: null,
-    currentExpenseType: null,  // Для розуміння, що вводиться (їжа чи алкоголь)
-    currentPerson: null  // Для розуміння, кому записуємо витрати
+    currentExpenseType: null,
+    currentPerson: null
 };
 
+// 📌 Збереження даних
 function saveUsers() {
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
@@ -39,6 +40,15 @@ bot.start((ctx) => {
     settings.selectedPeople = [];
     settings.waitingFor = "selectPeople";
 });
+
+// 📌 Функція створення меню вибору користувачів
+function getUsersMenu() {
+    return Markup.inlineKeyboard([
+        ...users.map((user) => Markup.button.callback(user, `select_${user}`)),
+        [Markup.button.callback("➕ Додати нового", "add_new")],
+        [Markup.button.callback("✅ Підтвердити вибір", "confirm_people")]
+    ]);
+}
 
 // 📌 Вибір учасників (кнопки)
 bot.action(/select_(.+)/, (ctx) => {
@@ -57,7 +67,7 @@ bot.action("add_new", (ctx) => {
     ctx.reply("Введіть ім'я нового учасника:");
 });
 
-// 📌 Обробка текстових відповідей
+// 📌 Обробка введення нового імені
 bot.on("text", (ctx) => {
     let text = ctx.message.text.trim();
 
@@ -95,7 +105,6 @@ bot.on("text", (ctx) => {
             }
             ctx.reply(`✅ ${settings.currentPerson} витратив ${amount} грн на ${settings.currentExpenseType === "food" ? "їжу" : "алкоголь"}.`);
 
-            // Повертаємось до вибору нового витратника або переходимо до алкоголю
             if (settings.currentExpenseType === "food") {
                 ctx.reply("Хто ще витратив гроші на їжу?", getExpensePersonMenu("food"));
             } else if (settings.currentExpenseType === "alcohol") {
@@ -110,18 +119,6 @@ bot.on("text", (ctx) => {
     }
 });
 
-// 📌 Вибір, хто платив за їжу/алкоголь
-bot.action(/expense_(food|alcohol)_(.+)/, (ctx) => {
-    let type = ctx.match[1];
-    let name = ctx.match[2];
-
-    settings.currentExpenseType = type;
-    settings.currentPerson = name;
-    settings.waitingFor = "enterExpenseAmount";
-
-    ctx.reply(`Скільки витратив ${name} на ${type === "food" ? "їжу" : "алкоголь"}?`);
-});
-
 // 📌 Меню вибору людини для витрат
 function getExpensePersonMenu(type) {
     return Markup.inlineKeyboard([
@@ -130,17 +127,23 @@ function getExpensePersonMenu(type) {
     ]);
 }
 
-// 📌 Завершення введення витрат на їжу
+// 📌 Завершення введення витрат
 bot.action("finishFoodExpenses", (ctx) => {
     settings.waitingFor = "selectAlcoholSpender";
     ctx.reply("Тепер введіть витрати на алкоголь:", getExpensePersonMenu("alcohol"));
 });
 
-// 📌 Завершення введення витрат на алкоголь та розрахунок
 bot.action("finishAlcoholExpenses", (ctx) => {
     ctx.reply("✅ Всі витрати записано! Обробляю дані...");
-    ctx.reply(calculatePayments());
+    ctx.reply(calculatePayments(), getRestartMenu());
 });
+
+// 📌 Функція для кнопки "🔄 Почати новий розрахунок"
+function getRestartMenu() {
+    return Markup.inlineKeyboard([
+        Markup.button.callback("🔄 Почати новий розрахунок", "new_calculation")
+    ]);
+}
 
 // 📌 Фінальний розрахунок витрат
 function calculatePayments() {
@@ -165,5 +168,10 @@ function calculatePayments() {
 
     return result;
 }
+
+// 📌 Додаємо кнопку "Почати новий розрахунок"
+bot.action("new_calculation", (ctx) => {
+    ctx.reply("🔄 Починаємо новий підрахунок!", getUsersMenu());
+});
 
 bot.launch().then(() => console.log("✅ Бот працює!"));
