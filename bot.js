@@ -135,14 +135,20 @@ bot.on("text", (ctx) => {
     console.log("🔍 Очікуваний стан перед перевіркою:", settings.waitingFor);
 
     if (settings.waitingFor === "bathCost") {
-        console.log("✅ Зайшов у блок bathCost!");
+        console.log("✅ Входить у блок обробки bathCost");
         const amount = parseInt(text);
+
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
             saveData();
+            
+            console.log("💾 Збережено bathCost:", settings.bathCost);
+            console.log("➡️ Переходимо до вибору витрат на їжу");
+            
             ctx.reply("✅ Записано! Тепер виберіть хто оплачував їжу:", getExpenseMenu("food"));
         } else {
+            console.log("❌ Помилка: введено не число або <= 0");
             ctx.reply("❌ Введіть коректну суму у вигляді числа.");
         }
         return;
