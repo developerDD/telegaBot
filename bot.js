@@ -129,12 +129,14 @@ bot.action(/drinker_(.+)/, (ctx) => {
 
 // 📌 **Завершення вибору тих, хто пив алкоголь**
 bot.action("confirm_drinkers", (ctx) => {
+    console.log("🔄 Перед зміною waitingFor = ", settings.waitingFor);
     settings.waitingFor = "bathCost";
     saveData();
-     console.log("🛠️ DEBUG: Поточний settings:", JSON.stringify(settings, null, 2));
-    console.log("🔍 Перед перевіркою settings.waitingFor =", settings.waitingFor);
-    console.log("⚡ Стан оновлено: Очікується введення вартості бані!");
+    console.log("💾 Дані збережені у файл!", JSON.stringify(settings, null, 2));
     ctx.reply("💰 Скільки коштувала баня?");
+});
+bot.command("debug", (ctx) => {
+    ctx.reply(`🛠️ DEBUG:\n\`\`\`\n${JSON.stringify(settings, null, 2)}\n\`\`\``, { parse_mode: "Markdown" });
 });
 
 // 📌 **Фіксація вартості бані**
@@ -143,35 +145,35 @@ bot.on("text", (ctx) => {
     console.log("🟡 Отримано повідомлення:", text);
     console.log("🟡 Поточний стан settings.waitingFor =", settings.waitingFor);
 
-    if (settings.waitingFor === "bathCost") {
-        console.log("✅ Входить у блок обробки bathCost");
-        console.log("🛠️ DEBUG: Поточний settings:", JSON.stringify(settings, null, 2));
-
-        if (!/^\d+$/.test(text)) {
-            console.log("❌ Помилка: введено не число!");
-            ctx.reply("❌ Введіть коректну суму у вигляді числа без букв та символів.");
-            return;
-        }
-
-        const amount = parseInt(text, 10);
-
-        if (amount > 0) {
-            settings.bathCost = amount;
-            settings.waitingFor = "foodExpenses";
-            saveData();
-
-            console.log("💾 Збережено bathCost:", settings.bathCost);
-            console.log("➡️ Переходимо до вибору витрат на їжу");
-
-            ctx.reply("✅ Записано! Тепер виберіть, хто оплачував їжу:", getExpenseMenu("food"));
-        } else {
-            console.log("❌ Помилка: введене число <= 0");
-            ctx.reply("❌ Введіть число більше за 0.");
-        }
+    if (settings.waitingFor !== "bathCost") {
+        console.log("⛔ Відхилено! Очікуваний стан не bathCost");
         return;
     }
-});
 
+    console.log("✅ Входить у блок обробки bathCost");
+    
+    if (!/^\d+$/.test(text)) {
+        console.log("❌ Помилка: введено не число!");
+        ctx.reply("❌ Введіть коректну суму у вигляді числа без букв та символів.");
+        return;
+    }
+
+    const amount = parseInt(text, 10);
+
+    if (amount > 0) {
+        settings.bathCost = amount;
+        settings.waitingFor = "foodExpenses";
+        saveData();
+
+        console.log("💾 Збережено bathCost:", settings.bathCost);
+        console.log("➡️ Переходимо до вибору витрат на їжу");
+
+        ctx.reply("✅ Записано! Тепер виберіть, хто оплачував їжу:", getExpenseMenu("food"));
+    } else {
+        console.log("❌ Помилка: введене число <= 0");
+        ctx.reply("❌ Введіть число більше за 0.");
+    }
+});
 // 📌 **Переконайся, що бот не запускається двічі**
 bot.launch({
     dropPendingUpdates: true
