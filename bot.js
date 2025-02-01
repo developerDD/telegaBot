@@ -138,28 +138,6 @@ bot.on("text", (ctx) => {
     }
 });
 
-// Меню вибору тих, хто оплачував їжу або алкоголь
-function getExpenseMenu(type) {
-    const buttons = settings.participants.map((user) => Markup.button.callback(user, `${type}_${user}`));
-    buttons.push(Markup.button.callback("✅ Завершити", `confirm_${type}`));
-    return Markup.inlineKeyboard(buttons, { columns: 2 });
-}
-
-// Завершення введення витрат на їжу
-bot.action("confirm_food", (ctx) => {
-    ctx.reply("✅ Записано! Тепер виберіть хто оплачував алкоголь:", getExpenseMenu("alcohol"));
-    settings.waitingFor = "alcoholExpenses";
-    saveData();
-});
-
-// Завершення введення витрат на алкоголь
-bot.action("confirm_alcohol", (ctx) => {
-    ctx.reply("✅ Всі витрати записано! Обробляю дані...");
-    ctx.reply(generateSummary());
-    settings.waitingFor = null;
-    saveData();
-});
-
 // Формування підсумкового звіту
 function generateSummary() {
     let totalFood = Object.values(settings.foodExpenses).reduce((a, b) => a + b, 0);
