@@ -131,6 +131,7 @@ bot.action(/drinker_(.+)/, (ctx) => {
 bot.action("confirm_drinkers", (ctx) => {
     settings.waitingFor = "bathCost";
     saveData();
+     console.log("🛠️ DEBUG: Поточний settings:", JSON.stringify(settings, null, 2));
     console.log("🔍 Перед перевіркою settings.waitingFor =", settings.waitingFor);
     console.log("⚡ Стан оновлено: Очікується введення вартості бані!");
     ctx.reply("💰 Скільки коштувала баня?");
@@ -139,16 +140,13 @@ bot.action("confirm_drinkers", (ctx) => {
 // 📌 **Фіксація вартості бані**
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
-    console.log("📩 Отримано повідомлення:", text);
-    console.log("📌 Очікуваний стан перед перевіркою:", settings.waitingFor);
-
-    // Дебаг: вивести весь об'єкт `settings`
-    console.log("🛠️ DEBUG: Поточний settings:", JSON.stringify(settings, null, 2));
+    console.log("🟡 Отримано повідомлення:", text);
+    console.log("🟡 Поточний стан settings.waitingFor =", settings.waitingFor);
 
     if (settings.waitingFor === "bathCost") {
         console.log("✅ Входить у блок обробки bathCost");
+        console.log("🛠️ DEBUG: Поточний settings:", JSON.stringify(settings, null, 2));
 
-        // Перевіряємо, чи введено ЧИСТО число
         if (!/^\d+$/.test(text)) {
             console.log("❌ Помилка: введено не число!");
             ctx.reply("❌ Введіть коректну суму у вигляді числа без букв та символів.");
@@ -161,7 +159,7 @@ bot.on("text", (ctx) => {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
             saveData();
-            
+
             console.log("💾 Збережено bathCost:", settings.bathCost);
             console.log("➡️ Переходимо до вибору витрат на їжу");
 
@@ -172,8 +170,6 @@ bot.on("text", (ctx) => {
         }
         return;
     }
-
-    console.log("⚠️ Не зайшло в if (settings.waitingFor === 'bathCost').");
 });
 
 // 📌 **Переконайся, що бот не запускається двічі**
