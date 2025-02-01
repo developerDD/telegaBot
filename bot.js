@@ -22,16 +22,20 @@ let settings = fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE))
     waitingFor: null
 };
 
+// Функція для збереження даних
 function saveData() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(settings, null, 2));
+    console.log("💾 Дані збережено:", settings);
 }
 
+// Функція для збереження списку користувачів
 function saveUsers() {
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-// Старт бота
+// 📌 **Старт бота**
 bot.start((ctx) => {
+    console.log("🔄 Новий запуск бота!");
     settings = {
         participants: [],
         drinkers: [],
@@ -44,7 +48,7 @@ bot.start((ctx) => {
     ctx.reply("Привіт! Обери учасників, які були в бані:", getUsersMenu());
 });
 
-// Меню вибору учасників
+// 📌 **Меню вибору учасників**
 function getUsersMenu() {
     const buttons = users.map((user) => Markup.button.callback(user, `user_${user}`));
     buttons.push(Markup.button.callback("➕ Додати нового", "add_new"));
@@ -52,7 +56,7 @@ function getUsersMenu() {
     return Markup.inlineKeyboard(buttons, { columns: 2 });
 }
 
-// Додавання учасника
+// 📌 **Додавання учасника**
 bot.action(/user_(.+)/, (ctx) => {
     const name = ctx.match[1];
     if (!settings.participants.includes(name)) {
@@ -62,15 +66,18 @@ bot.action(/user_(.+)/, (ctx) => {
     saveData();
 });
 
-// Додавання нового учасника
+// 📌 **Додавання нового учасника**
 bot.action("add_new", (ctx) => {
     ctx.reply("Введіть ім'я нового учасника:");
     settings.waitingFor = "newUser";
     saveData();
 });
 
+// 📌 **Обробка введення нового учасника**
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
+    console.log("📥 Отримано повідомлення:", text);
+    console.log("🔍 Очікуваний стан перед перевіркою:", settings.waitingFor);
 
     if (settings.waitingFor === "newUser") {
         if (!users.includes(text)) {
@@ -84,7 +91,7 @@ bot.on("text", (ctx) => {
     }
 });
 
-// Підтвердження учасників
+// 📌 **Підтвердження учасників**
 bot.action("confirm_users", (ctx) => {
     if (settings.participants.length === 0) {
         ctx.answerCbQuery("❌ Спочатку виберіть хоча б одного учасника!");
@@ -96,14 +103,14 @@ bot.action("confirm_users", (ctx) => {
     saveData();
 });
 
-// Меню вибору тих, хто пив алкоголь
+// 📌 **Меню вибору тих, хто пив алкоголь**
 function getDrinkersMenu() {
     const buttons = settings.participants.map((user) => Markup.button.callback(user, `drinker_${user}`));
     buttons.push(Markup.button.callback("✅ Завершити", "confirm_drinkers"));
     return Markup.inlineKeyboard(buttons, { columns: 2 });
 }
 
-// Додавання учасника у список тих, хто вживав алкоголь
+// 📌 **Додавання учасника у список тих, хто вживав алкоголь**
 bot.action(/drinker_(.+)/, (ctx) => {
     const name = ctx.match[1];
     if (!settings.drinkers.includes(name)) {
@@ -113,23 +120,22 @@ bot.action(/drinker_(.+)/, (ctx) => {
     saveData();
 });
 
-// Завершення вибору тих, хто пив алкоголь **(ФІКС)**
+// 📌 **Завершення вибору тих, хто пив алкоголь**
 bot.action("confirm_drinkers", (ctx) => {
+    console.log("⚡ Стан оновлено: Очікується введення вартості бані!");
     settings.waitingFor = "bathCost";
     saveData();
     ctx.reply("💰 Скільки коштувала баня?");
-    ctx.reply("Перейшов далі");
 });
 
-// Фіксація вартості бані **(ФІКС)**
-// Фіксація вартості бані (ФІКС)
+// 📌 **Фіксація вартості бані**
 bot.on("text", (ctx) => {
-    ctx.reply("Зайшов у блок");
     const text = ctx.message.text.trim();
-console.log("Отримано повідомлення:", text, "Очікуваний стан:", settings.waitingFor);
-    ctx.reply("Після логування");
+    console.log("📥 Отримано повідомлення:", text);
+    console.log("🔍 Очікуваний стан перед перевіркою:", settings.waitingFor);
+
     if (settings.waitingFor === "bathCost") {
-        ctx.reply("Зайшов у 1 іф");
+        console.log("✅ Зайшов у блок bathCost!");
         const amount = parseInt(text);
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
@@ -137,33 +143,13 @@ console.log("Отримано повідомлення:", text, "Очікува�
             saveData();
             ctx.reply("✅ Записано! Тепер виберіть хто оплачував їжу:", getExpenseMenu("food"));
         } else {
-            ctx.reply("❌ Будь ласка, введіть **коректну суму** у вигляді числа.");
+            ctx.reply("❌ Введіть коректну суму у вигляді числа.");
         }
         return;
     }
 });
 
-// Формування підсумкового звіту
-function generateSummary() {
-    let totalFood = Object.values(settings.foodExpenses).reduce((a, b) => a + b, 0);
-    let totalAlcohol = Object.values(settings.alcoholExpenses).reduce((a, b) => a + b, 0);
-    let totalBath = settings.bathCost;
-    let totalAmount = totalFood + totalAlcohol + totalBath;
-
-    let perPersonBath = totalBath / settings.participants.length;
-    let perPersonFood = totalFood / settings.participants.length;
-    let perPersonAlcohol = settings.drinkers.length > 0 ? totalAlcohol / settings.drinkers.length : 0;
-
-    let results = `📊 *Розрахунок витрат:*\n💰 *Загальна сума:* ${totalAmount} грн\n`;
-    results += `🥗 *Кожен платить за їжу:* ${perPersonFood.toFixed(2)} грн\n`;
-    results += `🛁 *Кожен платить за баню:* ${perPersonBath.toFixed(2)} грн\n`;
-    if (settings.drinkers.length > 0) {
-        results += `🍷 *Кожен, хто пив, платить за алкоголь:* ${perPersonAlcohol.toFixed(2)} грн\n`;
-    }
-
-    return results;
-}
-
+// 📌 **Переконайся, що бот не запускається двічі**
 bot.launch({
-  dropPendingUpdates: true
+    dropPendingUpdates: true
 }).then(() => console.log("✅ Бот працює!"));
