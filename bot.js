@@ -144,9 +144,17 @@ bot.on("text", (ctx) => {
 
     if (settings.waitingFor === "bathCost") {
         console.log("✅ Входить у блок обробки bathCost");
-        const amount = Number(text.trim());
 
-        if (!isNaN(amount) && amount > 0) {
+        // Перевіряємо, чи введено ЧИСТО число
+        if (!/^\d+$/.test(text)) {
+            console.log("❌ Помилка: введено не число!");
+            ctx.reply("❌ Введіть коректну суму у вигляді числа без букв та символів.");
+            return;
+        }
+
+        const amount = parseInt(text, 10);
+
+        if (amount > 0) {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
             saveData();
@@ -156,8 +164,8 @@ bot.on("text", (ctx) => {
 
             ctx.reply("✅ Записано! Тепер виберіть, хто оплачував їжу:", getExpenseMenu("food"));
         } else {
-            console.log("❌ Помилка: введено не число або <= 0");
-            ctx.reply("❌ Будь ласка, введіть коректну суму у вигляді числа.");
+            console.log("❌ Помилка: введене число <= 0");
+            ctx.reply("❌ Введіть число більше за 0.");
         }
         return;
     }
