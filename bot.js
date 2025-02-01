@@ -119,13 +119,16 @@ bot.action("confirm_drinkers", (ctx) => {
     saveData();
     ctx.reply("💰 Скільки коштувала баня?");
 });
-
+ctx.reply("Перейшов далі");
 // Фіксація вартості бані **(ФІКС)**
 // Фіксація вартості бані (ФІКС)
 bot.on("text", (ctx) => {
+    ctx.reply("Зайшов у блок");
     const text = ctx.message.text.trim();
-
+console.log("Отримано повідомлення:", text, "Очікуваний стан:", settings.waitingFor);
+    ctx.reply("Після логування");
     if (settings.waitingFor === "bathCost") {
+        ctx.reply("Зайшов у 1 іф");
         const amount = parseInt(text);
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
