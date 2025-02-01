@@ -1,4 +1,4 @@
-const packageJson = `{
+{
   "name": "telegram-bot",
   "version": "1.0.0",
   "description": "Telegram Bot for splitting expenses",
@@ -16,6 +16,4 @@ const packageJson = `{
   },
   "author": "Your Name",
   "license": "MIT"
-}`;
-
-fs.writeFileSync("package.json", packageJson);
+}
