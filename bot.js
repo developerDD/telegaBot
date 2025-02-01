@@ -142,6 +142,9 @@ bot.on("text", (ctx) => {
     console.log("📩 Отримано повідомлення:", text);
     console.log("📌 Очікуваний стан перед перевіркою:", settings.waitingFor);
 
+    // Дебаг: вивести весь об'єкт `settings`
+    console.log("🛠️ DEBUG: Поточний settings:", JSON.stringify(settings, null, 2));
+
     if (settings.waitingFor === "bathCost") {
         console.log("✅ Входить у блок обробки bathCost");
 
@@ -169,6 +172,8 @@ bot.on("text", (ctx) => {
         }
         return;
     }
+
+    console.log("⚠️ Не зайшло в if (settings.waitingFor === 'bathCost').");
 });
 
 // 📌 **Переконайся, що бот не запускається двічі**
