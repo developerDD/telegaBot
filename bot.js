@@ -85,8 +85,7 @@ bot.on("text", (ctx) => {
             ctx.reply("❌ Будь ласка, введіть 'Так' або 'Ні'.");
         }
         return;
-    }
-});
+    });
 
     if (settings.waitingFor === "foodExpenses") {
         let parts = text.split(" ");
