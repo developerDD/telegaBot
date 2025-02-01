@@ -153,7 +153,7 @@ bot.on("text", (ctx) => {
             ctx.reply("Введіть наступну витрату на алкоголь у форматі: Ім'я Сума");
             settings.waitingFor = "alcoholExpenses";
         } else if (text === "ні") {
-            ctx.reply("✅ Всі витрати записано! Обробляю дані...");
+            ctx.reply("✅ Всі витрати записано!");
             ctx.reply(calculatePayments());
             settings.waitingFor = null;
         } else {
