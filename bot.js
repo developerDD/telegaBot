@@ -24,8 +24,15 @@ let settings = fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE))
 
 // Функція для збереження даних
 function saveData() {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(settings, null, 2));
-    console.log("💾 Дані збережено:", settings);
+    try {
+        if (!fs.existsSync(DATA_FILE)) {
+            fs.writeFileSync(DATA_FILE, JSON.stringify({}));
+        }
+        fs.writeFileSync(DATA_FILE, JSON.stringify(settings, null, 2));
+        console.log("✅ Дані збережено:", settings);
+    } catch (error) {
+        console.error("❌ Помилка збереження файлу data.json", error);
+    }
 }
 
 // Функція для збереження списку користувачів
