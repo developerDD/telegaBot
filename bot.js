@@ -123,6 +123,8 @@ bot.action("confirm_drinkers", (ctx) => {
 // Фіксація вартості бані **(ФІКС)**
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
+    console.log("📩 Отримано повідомлення:", text);
+    console.log("⚙️ Очікуваний стан:", settings.waitingFor);
 
     if (settings.waitingFor === "bathCost") {
         const amount = parseInt(text);
