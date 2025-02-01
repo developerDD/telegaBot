@@ -62,15 +62,35 @@ bot.action("add_new", (ctx) => {
 });
 
 bot.action("confirm_users", (ctx) => {
-    ctx.reply("Хто вживав алкоголь? Введіть імена (по одному за раз). Коли закінчите, напишіть 'Готово'.");
+    ctx.reply("Хто вживав алкоголь?", getDrinkersMenu());
     settings.drinkers = [];
     settings.waitingFor = "selectingDrinkers";
     saveData();
 });
 
+function getDrinkersMenu() {
+    const buttons = settings.participants.map((user) => Markup.button.callback(user, `drinker_${user}`));
+    buttons.push(Markup.button.callback("✅ Підтвердити вибір", "confirm_drinkers"));
+    return Markup.inlineKeyboard(buttons, { columns: 2 });
+}
+
+bot.action(/drinker_(.+)/, (ctx) => {
+    const name = ctx.match[1];
+    if (!settings.drinkers.includes(name)) {
+        settings.drinkers.push(name);
+    }
+    ctx.answerCbQuery(`${name} додано до списку питущих!`);
+    saveData();
+});
+
+bot.action("confirm_drinkers", (ctx) => {
+    ctx.reply("Скільки коштувала баня?");
+    settings.waitingFor = "bathCost";
+    saveData();
+});
+
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
-    
     if (settings.waitingFor === "newUser") {
         if (!users.includes(text)) {
             users.push(text);
@@ -81,58 +101,54 @@ bot.on("text", (ctx) => {
         saveData();
         return;
     }
-
-    if (settings.waitingFor === "selectingDrinkers") {
-        if (text.toLowerCase() === "готово") {
-            ctx.reply("Скільки коштувала баня?");
-            settings.waitingFor = "bathCost";
-        } else if (settings.participants.includes(text)) {
-            settings.drinkers.push(text);
-            ctx.reply(`✅ ${text} додано до списку тих, хто вживав алкоголь.`);
-        } else {
-            ctx.reply("❌ Такого учасника немає в списку. Введіть ім'я ще раз.");
-        }
-        saveData();
-        return;
-    }
-
     if (settings.waitingFor === "bathCost") {
         const amount = parseInt(text);
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
-            ctx.reply("Введіть витрати на їжу у форматі: Ім'я Сума");
+            ctx.reply("Введіть витрати на їжу:", getExpenseMenu("food"));
             saveData();
         } else {
             ctx.reply("❌ Введіть коректну суму.");
         }
         return;
     }
+});
 
-    if (settings.waitingFor === "foodExpenses" || settings.waitingFor === "alcoholExpenses") {
-        let parts = text.split(" ");
-        if (parts.length !== 2) {
-            ctx.reply("❌ Неправильний формат. Використовуйте: Ім'я Сума");
-            return;
-        }
+function getExpenseMenu(type) {
+    const buttons = settings.participants.map((user) => Markup.button.callback(user, `${type}_${user}`));
+    buttons.push(Markup.button.callback("✅ Завершити", `confirm_${type}`));
+    return Markup.inlineKeyboard(buttons, { columns: 2 });
+}
 
-        let name = parts[0];
-        let amount = parseInt(parts[1]);
-        if (isNaN(amount)) {
+bot.action(/food_(.+)/, (ctx) => {
+    const name = ctx.match[1];
+    ctx.reply(`Введіть суму витрат для ${name}:`);
+    settings.waitingFor = `foodExpense_${name}`;
+    saveData();
+});
+
+bot.on("text", (ctx) => {
+    const text = ctx.message.text.trim();
+    if (settings.waitingFor.startsWith("foodExpense_")) {
+        let name = settings.waitingFor.replace("foodExpense_", "");
+        let amount = parseInt(text);
+        if (!isNaN(amount) && amount > 0) {
+            settings.foodExpenses[name] = (settings.foodExpenses[name] || 0) + amount;
+            ctx.reply(`✅ ${name} витратив ${amount} грн на їжу. Виберіть наступного учасника або натисніть "✅ Завершити".`);
+            settings.waitingFor = "foodExpenses";
+            saveData();
+        } else {
             ctx.reply("❌ Введіть правильну суму.");
-            return;
         }
-
-        let expenseCategory = settings.waitingFor === "foodExpenses" ? settings.foodExpenses : settings.alcoholExpenses;
-        if (!expenseCategory[name]) {
-            expenseCategory[name] = 0;
-        }
-        expenseCategory[name] += amount;
-        saveData();
-
-        ctx.reply(`✅ ${name} витратив ${amount} грн. Більше витрат? (Так/Ні)`);
-        settings.waitingFor = settings.waitingFor === "foodExpenses" ? "foodConfirm" : "alcoholConfirm";
+        return;
     }
+});
+
+bot.action("confirm_food", (ctx) => {
+    ctx.reply("Введіть витрати на алкоголь:", getExpenseMenu("alcohol"));
+    settings.waitingFor = "alcoholExpenses";
+    saveData();
 });
 
 bot.action("newCalculation", (ctx) => {
