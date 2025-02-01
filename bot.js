@@ -138,7 +138,7 @@ bot.on("text", (ctx) => {
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
-            ctx.reply("Виберіть хто оплачував їжу:", getExpenseMenu("food"));
+            ctx.reply("✅ Записано! Тепер виберіть хто оплачував їжу:", getExpenseMenu("food"));
             saveData();
         } else {
             ctx.reply("❌ Введіть коректну суму.");
@@ -156,7 +156,7 @@ function getExpenseMenu(type) {
 
 // Завершення введення витрат на їжу
 bot.action("confirm_food", (ctx) => {
-    ctx.reply("Виберіть хто оплачував алкоголь:", getExpenseMenu("alcohol"));
+    ctx.reply("✅ Записано! Тепер виберіть хто оплачував алкоголь:", getExpenseMenu("alcohol"));
     settings.waitingFor = "alcoholExpenses";
     saveData();
 });
@@ -186,15 +186,6 @@ function generateSummary() {
     if (settings.drinkers.length > 0) {
         results += `🍷 *Кожен, хто пив, платить за алкоголь:* ${perPersonAlcohol.toFixed(2)} грн\n`;
     }
-
-    settings.participants.forEach((user) => {
-        let paid = (settings.foodExpenses[user] || 0) + (settings.alcoholExpenses[user] || 0);
-        let owes = perPersonBath + perPersonFood + (settings.drinkers.includes(user) ? perPersonAlcohol : 0);
-        let balance = paid - owes;
-        results += balance > 0
-            ? `✅ ${user} *переплатив*: ${balance.toFixed(2)} грн (йому повертають)\n`
-            : `❌ ${user} *повинен доплатити*: ${(-balance).toFixed(2)} грн\n`;
-    });
 
     return results;
 }
