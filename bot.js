@@ -161,4 +161,6 @@ function generateSummary() {
     return results;
 }
 
-bot.launch().then(() => console.log("✅ Бот працює!"));
+bot.launch({
+  dropPendingUpdates: true
+}).then(() => console.log("✅ Бот працює!"));
