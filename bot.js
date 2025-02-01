@@ -129,7 +129,7 @@ bot.action("confirm_drinkers", (ctx) => {
     saveData();
 });
 
-// Запис вартості бані
+// Фіксація вартості бані та перехід до витрат на їжу
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
 
@@ -138,8 +138,8 @@ bot.on("text", (ctx) => {
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
-            ctx.reply("✅ Записано! Тепер виберіть хто оплачував їжу:", getExpenseMenu("food"));
             saveData();
+            ctx.reply("✅ Записано! Тепер виберіть хто оплачував їжу:", getExpenseMenu("food"));
         } else {
             ctx.reply("❌ Введіть коректну суму.");
         }
