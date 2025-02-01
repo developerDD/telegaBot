@@ -9,11 +9,9 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Файли для збереження даних
 const USERS_FILE = "users.json";
 const DATA_FILE = "data.json";
 
-// Завантажуємо збережених учасників
 let users = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE)) : [];
 let settings = fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE)) : {
     participants: [],
@@ -40,28 +38,21 @@ bot.start((ctx) => {
         bathCost: 0,
         foodExpenses: {},
         alcoholExpenses: {},
-        waitingFor: null
+        waitingFor: "selectingParticipants"
     };
     saveData();
     ctx.reply("Привіт! Обери учасників, які були в бані:", getUsersMenu());
-    settings.waitingFor = "selectingParticipants";
 });
 
-// Відображення списку учасників
+// Меню вибору учасників
 function getUsersMenu() {
-    if (users.length === 0) {
-        return Markup.inlineKeyboard([
-            [Markup.button.callback("➕ Додати нового", "add_new")]
-        ]);
-    }
-
     const buttons = users.map((user) => Markup.button.callback(user, `user_${user}`));
     buttons.push(Markup.button.callback("➕ Додати нового", "add_new"));
     buttons.push(Markup.button.callback("✅ Підтвердити вибір", "confirm_users"));
     return Markup.inlineKeyboard(buttons, { columns: 2 });
 }
 
-// Додавання учасника в баню
+// Додавання учасника
 bot.action(/user_(.+)/, (ctx) => {
     const name = ctx.match[1];
     if (!settings.participants.includes(name)) {
@@ -93,7 +84,7 @@ bot.on("text", (ctx) => {
     }
 });
 
-// Підтвердження учасників бані
+// Підтвердження учасників
 bot.action("confirm_users", (ctx) => {
     if (settings.participants.length === 0) {
         ctx.answerCbQuery("❌ Спочатку виберіть хоча б одного учасника!");
@@ -129,7 +120,7 @@ bot.action("confirm_drinkers", (ctx) => {
     saveData();
 });
 
-// Фіксація вартості бані та перехід до витрат на їжу
+// Фіксація вартості бані та перехід до вибору тих, хто оплачував їжу
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
 
@@ -147,7 +138,7 @@ bot.on("text", (ctx) => {
     }
 });
 
-// Вибір тих, хто оплачував їжу або алкоголь
+// Меню вибору тих, хто оплачував їжу або алкоголь
 function getExpenseMenu(type) {
     const buttons = settings.participants.map((user) => Markup.button.callback(user, `${type}_${user}`));
     buttons.push(Markup.button.callback("✅ Завершити", `confirm_${type}`));
