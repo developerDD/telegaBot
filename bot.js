@@ -140,29 +140,27 @@ bot.action("confirm_drinkers", (ctx) => {
 bot.on("text", (ctx) => {
     const text = ctx.message.text.trim();
     console.log("📩 Отримано повідомлення:", text);
-    console.log("⏳ Очікуваний стан перед перевіркою:", settings.waitingFor);
+    console.log("📌 Очікуваний стан перед перевіркою:", settings.waitingFor);
 
     if (settings.waitingFor === "bathCost") {
         console.log("✅ Входить у блок обробки bathCost");
-        const amount = parseInt(text);
-        
+        const amount = Number(text.trim());
+
         if (!isNaN(amount) && amount > 0) {
             settings.bathCost = amount;
             settings.waitingFor = "foodExpenses";
             saveData();
-
-            console.log("✅ Збережено bathCost:", settings.bathCost);
+            
+            console.log("💾 Збережено bathCost:", settings.bathCost);
             console.log("➡️ Переходимо до вибору витрат на їжу");
 
-            ctx.reply("✅ Записано! Тепер виберіть хто оплачував їжу:", getExpenseMenu("food"));
+            ctx.reply("✅ Записано! Тепер виберіть, хто оплачував їжу:", getExpenseMenu("food"));
         } else {
             console.log("❌ Помилка: введено не число або <= 0");
             ctx.reply("❌ Будь ласка, введіть коректну суму у вигляді числа.");
         }
         return;
     }
-
-    console.log("⚠️ Невідомий стан або неправильне повідомлення.");
 });
 
 // 📌 **Переконайся, що бот не запускається двічі**
