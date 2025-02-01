@@ -47,13 +47,21 @@ bot.start((ctx) => {
     settings.waitingFor = "selectingParticipants";
 });
 
+// Відображення списку учасників
 function getUsersMenu() {
+    if (users.length === 0) {
+        return Markup.inlineKeyboard([
+            [Markup.button.callback("➕ Додати нового", "add_new")]
+        ]);
+    }
+
     const buttons = users.map((user) => Markup.button.callback(user, `user_${user}`));
     buttons.push(Markup.button.callback("➕ Додати нового", "add_new"));
     buttons.push(Markup.button.callback("✅ Підтвердити вибір", "confirm_users"));
     return Markup.inlineKeyboard(buttons, { columns: 2 });
 }
 
+// Додавання учасника в баню
 bot.action(/user_(.+)/, (ctx) => {
     const name = ctx.match[1];
     if (!settings.participants.includes(name)) {
@@ -63,41 +71,10 @@ bot.action(/user_(.+)/, (ctx) => {
     saveData();
 });
 
+// Додавання нового учасника
 bot.action("add_new", (ctx) => {
     ctx.reply("Введіть ім'я нового учасника:");
     settings.waitingFor = "newUser";
-    saveData();
-});
-
-bot.action("confirm_users", (ctx) => {
-    if (settings.participants.length === 0) {
-        ctx.answerCbQuery("❌ Спочатку виберіть хоча б одного учасника!");
-        return;
-    }
-    ctx.reply("Хто вживав алкоголь? Введіть імена (по одному за раз). Коли закінчите, напишіть 'Готово'.", getDrinkersMenu());
-    settings.waitingFor = "selectingDrinkers";
-    settings.drinkers = [];
-    saveData();
-});
-
-function getDrinkersMenu() {
-    const buttons = settings.participants.map((user) => Markup.button.callback(user, `drinker_${user}`));
-    buttons.push(Markup.button.callback("✅ Завершити", "confirm_drinkers"));
-    return Markup.inlineKeyboard(buttons, { columns: 2 });
-}
-
-bot.action(/drinker_(.+)/, (ctx) => {
-    const name = ctx.match[1];
-    if (!settings.drinkers.includes(name)) {
-        settings.drinkers.push(name);
-    }
-    ctx.answerCbQuery(`${name} додано до списку!`);
-    saveData();
-});
-
-bot.action("confirm_drinkers", (ctx) => {
-    ctx.reply("Скільки коштувала баня?");
-    settings.waitingFor = "bathCost";
     saveData();
 });
 
@@ -109,11 +86,52 @@ bot.on("text", (ctx) => {
             users.push(text);
             saveUsers();
         }
-        ctx.reply("✅ Додано!", getUsersMenu());
+        ctx.reply(`✅ ${text} додано!`, getUsersMenu());
         settings.waitingFor = "selectingParticipants";
         saveData();
         return;
     }
+});
+
+// Підтвердження учасників бані
+bot.action("confirm_users", (ctx) => {
+    if (settings.participants.length === 0) {
+        ctx.answerCbQuery("❌ Спочатку виберіть хоча б одного учасника!");
+        return;
+    }
+    ctx.reply("Хто вживав алкоголь? Виберіть зі списку або введіть ім'я вручну:", getDrinkersMenu());
+    settings.waitingFor = "selectingDrinkers";
+    settings.drinkers = [];
+    saveData();
+});
+
+// Меню вибору тих, хто пив алкоголь
+function getDrinkersMenu() {
+    const buttons = settings.participants.map((user) => Markup.button.callback(user, `drinker_${user}`));
+    buttons.push(Markup.button.callback("✅ Завершити", "confirm_drinkers"));
+    return Markup.inlineKeyboard(buttons, { columns: 2 });
+}
+
+// Додавання учасника у список тих, хто вживав алкоголь
+bot.action(/drinker_(.+)/, (ctx) => {
+    const name = ctx.match[1];
+    if (!settings.drinkers.includes(name)) {
+        settings.drinkers.push(name);
+    }
+    ctx.answerCbQuery(`${name} додано до списку!`);
+    saveData();
+});
+
+// Завершення вибору тих, хто пив алкоголь
+bot.action("confirm_drinkers", (ctx) => {
+    ctx.reply("Скільки коштувала баня?");
+    settings.waitingFor = "bathCost";
+    saveData();
+});
+
+// Запис вартості бані
+bot.on("text", (ctx) => {
+    const text = ctx.message.text.trim();
 
     if (settings.waitingFor === "bathCost") {
         const amount = parseInt(text);
@@ -129,77 +147,56 @@ bot.on("text", (ctx) => {
     }
 });
 
+// Вибір тих, хто оплачував їжу або алкоголь
 function getExpenseMenu(type) {
     const buttons = settings.participants.map((user) => Markup.button.callback(user, `${type}_${user}`));
     buttons.push(Markup.button.callback("✅ Завершити", `confirm_${type}`));
     return Markup.inlineKeyboard(buttons, { columns: 2 });
 }
 
-bot.action(/food_(.+)/, (ctx) => {
-    const name = ctx.match[1];
-    ctx.reply(`Введіть суму витрат для ${name}:`);
-    settings.waitingFor = `foodAmount_${name}`;
-});
-
-bot.on("text", (ctx) => {
-    const text = ctx.message.text.trim();
-
-    if (settings.waitingFor && settings.waitingFor.startsWith("foodAmount_")) {
-        const name = settings.waitingFor.split("_")[1];
-        const amount = parseInt(text);
-        if (!isNaN(amount) && amount > 0) {
-            if (!settings.foodExpenses[name]) {
-                settings.foodExpenses[name] = 0;
-            }
-            settings.foodExpenses[name] += amount;
-            ctx.reply(`✅ ${name} витратив ${amount} грн на їжу.`);
-            saveData();
-        } else {
-            ctx.reply("❌ Введіть правильну суму.");
-        }
-        settings.waitingFor = "foodExpenses";
-        return;
-    }
-});
-
+// Завершення введення витрат на їжу
 bot.action("confirm_food", (ctx) => {
     ctx.reply("Виберіть хто оплачував алкоголь:", getExpenseMenu("alcohol"));
     settings.waitingFor = "alcoholExpenses";
     saveData();
 });
 
-bot.action(/alcohol_(.+)/, (ctx) => {
-    const name = ctx.match[1];
-    ctx.reply(`Введіть суму витрат для ${name}:`);
-    settings.waitingFor = `alcoholAmount_${name}`;
-});
-
-bot.on("text", (ctx) => {
-    const text = ctx.message.text.trim();
-
-    if (settings.waitingFor && settings.waitingFor.startsWith("alcoholAmount_")) {
-        const name = settings.waitingFor.split("_")[1];
-        const amount = parseInt(text);
-        if (!isNaN(amount) && amount > 0) {
-            if (!settings.alcoholExpenses[name]) {
-                settings.alcoholExpenses[name] = 0;
-            }
-            settings.alcoholExpenses[name] += amount;
-            ctx.reply(`✅ ${name} витратив ${amount} грн на алкоголь.`);
-            saveData();
-        } else {
-            ctx.reply("❌ Введіть правильну суму.");
-        }
-        settings.waitingFor = "alcoholExpenses";
-        return;
-    }
-});
-
+// Завершення введення витрат на алкоголь
 bot.action("confirm_alcohol", (ctx) => {
     ctx.reply("✅ Всі витрати записано! Обробляю дані...");
-    ctx.reply("📊 Ось підсумок ваших витрат:");
+    ctx.reply(generateSummary());
     settings.waitingFor = null;
     saveData();
 });
+
+// Формування підсумкового звіту
+function generateSummary() {
+    let totalFood = Object.values(settings.foodExpenses).reduce((a, b) => a + b, 0);
+    let totalAlcohol = Object.values(settings.alcoholExpenses).reduce((a, b) => a + b, 0);
+    let totalBath = settings.bathCost;
+    let totalAmount = totalFood + totalAlcohol + totalBath;
+
+    let perPersonBath = totalBath / settings.participants.length;
+    let perPersonFood = totalFood / settings.participants.length;
+    let perPersonAlcohol = settings.drinkers.length > 0 ? totalAlcohol / settings.drinkers.length : 0;
+
+    let results = `📊 *Розрахунок витрат:*\n💰 *Загальна сума:* ${totalAmount} грн\n`;
+    results += `🥗 *Кожен платить за їжу:* ${perPersonFood.toFixed(2)} грн\n`;
+    results += `🛁 *Кожен платить за баню:* ${perPersonBath.toFixed(2)} грн\n`;
+    if (settings.drinkers.length > 0) {
+        results += `🍷 *Кожен, хто пив, платить за алкоголь:* ${perPersonAlcohol.toFixed(2)} грн\n`;
+    }
+
+    settings.participants.forEach((user) => {
+        let paid = (settings.foodExpenses[user] || 0) + (settings.alcoholExpenses[user] || 0);
+        let owes = perPersonBath + perPersonFood + (settings.drinkers.includes(user) ? perPersonAlcohol : 0);
+        let balance = paid - owes;
+        results += balance > 0
+            ? `✅ ${user} *переплатив*: ${balance.toFixed(2)} грн (йому повертають)\n`
+            : `❌ ${user} *повинен доплатити*: ${(-balance).toFixed(2)} грн\n`;
+    });
+
+    return results;
+}
 
 bot.launch().then(() => console.log("✅ Бот працює!"));
